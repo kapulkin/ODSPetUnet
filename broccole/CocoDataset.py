@@ -77,7 +77,7 @@ class CocoDataset:
             os.makedirs(datasetDir)
         
         packetSize = 16 * 16
-        size = min(len(dataset), maxCount)
+        size = min(len(dataset), maxCount) is maxCount is not None else len(dataset)
         packets = size // packetSize
 
         dataset.reset()
