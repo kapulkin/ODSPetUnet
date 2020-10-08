@@ -77,22 +77,25 @@ class CocoDataset:
             os.makedirs(datasetDir)
         
         packetSize = 16 * 16
-        packets = len(dataset) // packetSize
+        size = min(len(dataset), maxCount)
+        packets = size // packetSize
 
         dataset.reset()
         i = 0
         for _ in range(packets):
-            if maxCount is not None and i >= maxCount:
-                return
             images, masks = dataset.readBatch(packetSize)
             for j in range(images.shape[0]):
-                if maxCount is not None and i >= maxCount:
-                    return
                 cv2.imwrite(os.path.join(datasetDir, 'image{}.jpg'.format(i)), images[j])
                 cv2.imwrite(os.path.join(datasetDir, 'mask{}.png'.format(i)), masks[j])
                 i += 1
             
             logger.debug("%d traing pairs (image, mask) saved", i)
+
+        images, masks = dataset.readBatch(size - i)
+        for j in range(images.shape[0]):
+            cv2.imwrite(os.path.join(datasetDir, 'image{}.jpg'.format(i)), images[j])
+            cv2.imwrite(os.path.join(datasetDir, 'mask{}.png'.format(i)), masks[j])
+            i += 1
 
         logger.debug("%d traing pairs (image, mask) saved", i)
 
