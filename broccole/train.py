@@ -2,10 +2,11 @@ import segmentation_models as sm
 import argparse
 import os
 import cv2
+import tensorflow as tf
 
 from broccole.CocoDataset import CocoDataset
 
-def train(trainDataset: CocoDataset, validationDataset: CocoDataset):
+def train(trainDataset: CocoDataset, validationDataset: CocoDataset, trainingDir: str):
     encoder = 'resnet18'
     preprocess_input = sm.get_preprocessing(encoder)
 
@@ -19,6 +20,11 @@ def train(trainDataset: CocoDataset, validationDataset: CocoDataset):
     validationPacketSize = 32 * 32
     x_val, y_val = validationDataset.readBatch(validationPacketSize)
     x_val = preprocess_input(x_val)
+
+    checkPointPath = os.path.join(trainingDir, 'u-net-resnet18.chpt')
+    checkPointCallback = tf.keras.callbacks.ModelCheckpoint(filepath=checkPointPath,
+                                                save_weights_only=True,
+                                                verbose=1)
 
     packetSize = 16 * 16
     batchSize = 1 # 16
@@ -36,6 +42,7 @@ def train(trainDataset: CocoDataset, validationDataset: CocoDataset):
                 batch_size=batchSize,
                 epochs=1,
                 validation_data=(x_val, y_val),
+                callbacks=[checkPointCallback],
             )
 
         packet = trainDataset.readBatch(packetSize)
@@ -46,7 +53,11 @@ def train(trainDataset: CocoDataset, validationDataset: CocoDataset):
             batch_size=16,
             epochs=1,
             validation_data=(x_val, y_val),
+            callbacks=[checkPointCallback],
         )
+
+    modelPath = os.path.join(trainingDir, 'u-net-resnet18.tfmodel')
+    model.save(modelPath)
 
 def showDataset(dataset: CocoDataset):
     batch = dataset.readBatch(10, loadMaskImages=True)
@@ -69,15 +80,7 @@ def parse_args():
     return args
 
 def main():
-    #TODO:
-    # load coco dataset: images, mask
-    # init model
-    # train
-    # iterate over dataset with batches
-    # 
-
     args = parse_args()
-    # datasetDir = 'D:\\data\\segmentation\\data\\coco'
     datasetDir = args.datasetDir
     trainDataset = CocoDataset(
         os.path.join(datasetDir, 'annotations/instances_train2017.json'),
@@ -93,7 +96,7 @@ def main():
         classes=[1]
     )
 
-    train(trainDataset, valDataset)
+    train(trainDataset, valDataset, datasetDir)
 
 
 if __name__ == '__main__':
