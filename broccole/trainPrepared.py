@@ -33,8 +33,8 @@ def train(
     validationPacketSize = 32 * 32
     x_val_h, y_val_h = valHumanDataset.readBatch(validationPacketSize)
     x_val_nh, y_val_nh = valNonHumanDataset.readBatch(validationPacketSize)
-    x_val = np.vstack(x_val_h, x_val_nh)
-    y_val = np.vstack(y_val_h, y_val_nh)
+    x_val = np.vstack([x_val_h, x_val_nh])
+    y_val = np.vstack([y_val_h, y_val_nh])
     x_val = preprocess_input(x_val)
 
     checkPointPath = os.path.join(trainingDir, 'u-net-resnet18.chpt')
@@ -56,8 +56,8 @@ def train(
         for _ in range(packets - 1):
             x_train_h, y_train_h = humanDataset.readBatch(packetSize)
             x_train_nh, y_train_nh = nonHumanDataset.readBatch(nonHumanPacketSize)
-            x_train = np.vstack(x_train_h, x_train_nh)
-            y_train = np.vstack(y_train_h, y_train_nh)
+            x_train = np.vstack([x_train_h, x_train_nh])
+            y_train = np.vstack([y_train_h, y_train_nh])
             x_train = preprocess_input(x_train)
 
             model.fit(
@@ -71,7 +71,7 @@ def train(
 
         x_train_h, y_train_h = humanDataset.readBatch(packetSize)
         x_train_nh, y_train_nh = nonHumanDataset.readBatch(nonHumanPacketSize)
-        x_train = np.vstack(x_train_h, x_train_nh)
+        x_train = np.vstack([x_train_h, x_train_nh])
 
         model.fit(
             x=x_train,
