@@ -5,9 +5,13 @@ import os
 import cv2
 import tensorflow as tf
 import numpy as np
+import logging
 
 from broccole.SegmentationDataset import SegmentationDataset
 from broccole.model import makeModel
+from broccole.logUtils import init_logging
+
+logger = logging.getLogger(__name__)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='train U-Net')
@@ -44,7 +48,7 @@ def train(
     batchSize = 1 # 16
     epochs = 1
     for epoch in range(epochs):
-        print('epoch {}'.format(epoch))
+        logger.info('epoch %d', epoch)
         humanDataset.reset()
         nonHumanDataset.reset()
 
@@ -81,13 +85,9 @@ def train(
     modelPath = os.path.join(trainingDir, 'u-net-resnet18.tfmodel')
     model.save(modelPath)
 
-
-    #TODO:
-    # read batch from h and nonH proportionally
-    # merge, train, validate
-    pass
-
 def main():
+    init_logging()
+
     args = parse_args()
     datasetDir = args.datasetDir
 
