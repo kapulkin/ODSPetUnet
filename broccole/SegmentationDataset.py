@@ -27,7 +27,7 @@ class SegmentationDataset:
         masksBatch = []
         while self.index < len(self) and len(imagesBatch) < batchSize:
             image = cv2.imread(os.path.join(self.datasetDir, 'image{}.jpg'.format(self.index)))
-            mask = cv2.imread(os.path.join(self.datasetDir, 'mask{}.png'.format(self.index)), cv2.IMREAD_GRAYSCALE)
+            mask = cv2.imread(os.path.join(self.datasetDir, 'mask{}.png'.format(self.index)), cv2.IMREAD_GRAYSCALE).astype(np.float32)
             if image is not None and mask is not None:
                 imagesBatch.append(image)
                 masksBatch.append(mask)
