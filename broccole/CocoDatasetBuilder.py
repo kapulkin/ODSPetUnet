@@ -48,13 +48,18 @@ class CocoDatasetBuilder:
                 imageAnnotations.append(annotation)
         return self
 
-    def addNonClasses(self, classes: List, maxCount: int = None):
+    def addNonClasses(self, classes: List, maxCount: int = None, shuffle: bool = False):
         if len(classes) == 0:
             raise Exception('classes is empty list')
         classes = { cls: cls for cls in classes }
 
+        indices = list(range(len(self.cocoAnnotations["annotations"])))
+        if shuffle:
+            random.shuffle(indices)
+
         count = 0
-        for annotation in self.cocoAnnotations["annotations"]:
+        for index in indices:
+            annotation = self.cocoAnnotations["annotations"][index]
             if maxCount is not None and count >= maxCount:
                 break
 
@@ -66,7 +71,7 @@ class CocoDatasetBuilder:
                     imageAnnotations = []
                     self.annotations[id] = imageAnnotations
                 imageAnnotations.append(annotation)
-            count += 1
+                count += 1
         return self
 
     def build(self, shuffle: bool = False):
