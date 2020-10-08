@@ -8,7 +8,8 @@
             "name": "train",
             "type": "python",
             "request": "launch",
-            "module": "broccole.train"
+            "module": "broccole.train",
+            "args": ["--datasetDir", "D:\\data\\segmentation\\data\\coco"]
         }
     ]
 }
