@@ -3,30 +3,19 @@ import cv2
 import os
 import random
 import numpy as np
-import tensorflow as tf
 from pycocotools import mask as cocoMask
+from typing import Dict
+import logging
+
+logger = logging.getLogger(__name__)
 
 class CocoDataset:
-    def __init__(self, annotationFilePath: str, imagesDir: str, masksDir: str, classes = [], shuffle: bool = True):
-        with open(annotationFilePath, 'r') as annotationFile:
-            annotations = json.load(annotationFile)
-
-        self.classes = { cls: cls for cls in classes } if len(classes) > 0 else None
-        self.annotations = {}
-        for annotation in annotations["annotations"]:
-            if self.classes is not None and annotation["category_id"] in self.classes:
-                id = annotation["image_id"]
-                if id in self.annotations:
-                    imageAnnotations = self.annotations[id]
-                else:
-                    imageAnnotations = []
-                    self.annotations[id] = imageAnnotations
-                imageAnnotations.append(annotation)
-
-        self.images =  [ image for image in annotations["images"] if image["id"] in self.annotations ]
-
+    def __init__(self, annotations: Dict, images, imagesDir: str, masksDir: str, shuffle: bool = True):
+        self.annotations = annotations
+        self.images = images
         self.imagesDir = imagesDir
         self.masksDir = masksDir
+
         self.indices = list(range(len(self.images)))
         if shuffle:
             random.shuffle(self.indices)
@@ -34,6 +23,9 @@ class CocoDataset:
 
     def __len__(self):
         return len(self.images)
+
+    def reset(self):
+        self.index = 0
 
     def readBatch(self, batchSize: int = None, loadMaskImages: bool = False):
         if batchSize is None:
@@ -79,7 +71,33 @@ class CocoDataset:
                 if loadMaskImages:
                     maksImagesBacth.append(maskImage)
             self.index += 1
-        imagesBatch = tf.convert_to_tensor(np.stack(imagesBatch))
-        masksBatch = tf.convert_to_tensor(np.stack(masksBatch))
+        imagesBatch = np.stack(imagesBatch)
+        masksBatch = np.stack(masksBatch)
 
         return (imagesBatch, masksBatch, maksImagesBacth) if loadMaskImages else (imagesBatch, masksBatch)
+
+    @staticmethod
+    def save(dataset, datasetDir: str, maxCount: int = None):
+        if not os.path.exists(datasetDir):
+            os.makedirs(datasetDir)
+        
+        packetSize = 16 * 16
+        packets = len(dataset) // packetSize
+
+        dataset.reset()
+        i = 0
+        for _ in range(packets):
+            if maxCount is not None and i >= maxCount:
+                return
+            images, masks = dataset.readBatch(packetSize)
+            for j in range(images.shape[0]):
+                if maxCount is not None and i >= maxCount:
+                    return
+                cv2.imwrite(os.path.join(datasetDir, 'image{}.jpg'.format(i)), images[j])
+                cv2.imwrite(os.path.join(datasetDir, 'mask{}.png'.format(i)), masks[j])
+                i += 1
+            
+            logger.debug("%d traing pairs (image, mask) saved", i)
+
+        logger.debug("%d traing pairs (image, mask) saved", i)
+

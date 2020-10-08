@@ -5,6 +5,7 @@ import cv2
 import tensorflow as tf
 
 from broccole.CocoDataset import CocoDataset
+from broccole.CocoDatasetBuilder import CocoDatasetBuilder
 
 def train(trainDataset: CocoDataset, validationDataset: CocoDataset, trainingDir: str):
     encoder = 'resnet18'
@@ -28,7 +29,7 @@ def train(trainDataset: CocoDataset, validationDataset: CocoDataset, trainingDir
 
     packetSize = 16 * 16
     batchSize = 1 # 16
-    epochs = 100
+    epochs = 1
     for epoch in range(epochs):
         print('epoch {}'.format(epoch))
         packets = len(trainDataset) // packetSize
@@ -45,7 +46,8 @@ def train(trainDataset: CocoDataset, validationDataset: CocoDataset, trainingDir
                 callbacks=[checkPointCallback],
             )
 
-        packet = trainDataset.readBatch(packetSize)
+        x_train, y_train = trainDataset.readBatch(packetSize)
+        x_train = preprocess_input(x_train)
 
         model.fit(
             x=x_train,
@@ -82,19 +84,19 @@ def parse_args():
 def main():
     args = parse_args()
     datasetDir = args.datasetDir
-    trainDataset = CocoDataset(
+    trainDataset = CocoDatasetBuilder(
         os.path.join(datasetDir, 'annotations/instances_train2017.json'),
         os.path.join(datasetDir, 'train2017'),
         os.path.join(datasetDir, 'annotations/panoptic_train2017'),
-        classes=[1]
-    )
+    ) \
+        .addClasses(classes=[1]).build()
 
-    valDataset = CocoDataset(
+    valDataset = CocoDatasetBuilder(
         os.path.join(datasetDir, 'annotations/instances_val2017.json'),
         os.path.join(datasetDir, 'val2017'),
         os.path.join(datasetDir, 'annotations/panoptic_val2017'),
-        classes=[1]
-    )
+    ) \
+        .addClasses(classes=[1]).build()
 
     train(trainDataset, valDataset, datasetDir)
 
