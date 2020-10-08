@@ -28,10 +28,9 @@ class CocoDataset:
 
     def readBatch(self, batchSize: int = None):
         if batchSize is None:
-            batchSize = len(self.images)
+            batchSize = len(self)
         imagesBatch = []
         masksBatch = []
-        maksImagesBacth = []
         while self.index < len(self.indices) and len(imagesBatch) < batchSize:
             datasetIndex = self.indices[self.index]
             imageInfo = self.images[datasetIndex]

@@ -6,17 +6,10 @@ import tensorflow as tf
 
 from broccole.CocoDataset import CocoDataset
 from broccole.CocoDatasetBuilder import CocoDatasetBuilder
+from broccole.model import makeModel
 
 def train(trainDataset: CocoDataset, validationDataset: CocoDataset, trainingDir: str):
-    encoder = 'resnet18'
-    preprocess_input = sm.get_preprocessing(encoder)
-
-    model = sm.Unet(encoder, classes=1, encoder_weights='imagenet')
-    model.compile(
-        'Adam',
-        loss=sm.losses.bce_jaccard_loss,
-        metrics=[sm.metrics.iou_score],
-    )
+    model, preprocess_input = makeModel()
 
     validationPacketSize = 32 * 32
     x_val, y_val = validationDataset.readBatch(validationPacketSize)
@@ -32,6 +25,7 @@ def train(trainDataset: CocoDataset, validationDataset: CocoDataset, trainingDir
     epochs = 1
     for epoch in range(epochs):
         print('epoch {}'.format(epoch))
+        trainDataset.reset()
         packets = len(trainDataset) // packetSize
         for _ in range(packets - 1):
             x_train, y_train = trainDataset.readBatch(packetSize)
@@ -52,7 +46,7 @@ def train(trainDataset: CocoDataset, validationDataset: CocoDataset, trainingDir
         model.fit(
             x=x_train,
             y=y_train,
-            batch_size=16,
+            batch_size=batchSize,
             epochs=1,
             validation_data=(x_val, y_val),
             callbacks=[checkPointCallback],
