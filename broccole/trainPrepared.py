@@ -17,6 +17,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='train U-Net')
     parser.add_argument('--datasetDir', help='path to directory with dataset', type=str)    
     parser.add_argument('--batchSize', help='batch size', type=int, default=1)
+    parser.add_argument('--epochs', help='epochs count', type=int, default=1)
     args = parser.parse_args()
     return args
 
@@ -26,7 +27,8 @@ def train(
     valHumanDataset: SegmentationDataset,
     valNonHumanDataset: SegmentationDataset,
     trainingDir: str,
-    batchSize: int = 1
+    batchSize: int = 1,
+    epochs: int = 1
 ):
     model, preprocess_input = makeModel()
 
@@ -45,8 +47,6 @@ def train(
     packetSize = 16 * 16
     nonHumanPacketSize = (packetSize * len(nonHumanDataset)) // len(humanDataset)
 
-    batchSize = 1 # 16
-    epochs = 1
     for epoch in range(epochs):
         logger.info('epoch %d', epoch)
         humanDataset.reset()
@@ -95,7 +95,7 @@ def main():
     nonHumanDataset = SegmentationDataset(os.path.join(datasetDir, 'nonHuman'))
     valHumanDataset = SegmentationDataset(os.path.join(datasetDir, 'valHuman'))
     valNonHumanDataset = SegmentationDataset(os.path.join(datasetDir, 'valNonHuman'))
-    train(humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset, datasetDir, args.batchSize)
+    train(humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset, datasetDir, args.batchSize, args.epochs)
 
 if __name__ == '__main__':
         main()
