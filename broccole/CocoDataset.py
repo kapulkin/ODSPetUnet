@@ -10,11 +10,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 class CocoDataset:
-    def __init__(self, annotations: Dict, images, imagesDir: str, masksDir: str, shuffle: bool = True):
+    def __init__(self, annotations: Dict, images, imagesDir: str, shuffle: bool = True):
         self.annotations = annotations
         self.images = images
         self.imagesDir = imagesDir
-        self.masksDir = masksDir
 
         self.indices = list(range(len(self.images)))
         if shuffle:
@@ -27,7 +26,7 @@ class CocoDataset:
     def reset(self):
         self.index = 0
 
-    def readBatch(self, batchSize: int = None, loadMaskImages: bool = False):
+    def readBatch(self, batchSize: int = None):
         if batchSize is None:
             batchSize = len(self.images)
         imagesBatch = []
@@ -55,8 +54,6 @@ class CocoDataset:
                 else:
                     commonMask = np.logical_or(commonMask, mask)
             commonMask = commonMask.astype(np.float32)
-            maskName = os.path.splitext(imageName)[0] + ".png"
-            maskImage = cv2.imread(os.path.join(self.masksDir, maskName))
 
             if image is not None and commonMask is not None:
                 if image.shape[0] != 480 or image.shape[1] != 640:
@@ -68,13 +65,11 @@ class CocoDataset:
 
                 imagesBatch.append(image)
                 masksBatch.append(commonMask)
-                if loadMaskImages:
-                    maksImagesBacth.append(maskImage)
             self.index += 1
         imagesBatch = np.stack(imagesBatch)
         masksBatch = np.stack(masksBatch)
 
-        return (imagesBatch, masksBatch, maksImagesBacth) if loadMaskImages else (imagesBatch, masksBatch)
+        return (imagesBatch, masksBatch)
 
     @staticmethod
     def save(dataset, datasetDir: str, maxCount: int = None):

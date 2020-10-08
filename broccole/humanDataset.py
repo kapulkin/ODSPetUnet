@@ -20,7 +20,6 @@ def main():
     dataset = CocoDatasetBuilder(
         os.path.join(datasetDir, 'annotations/instances_train2017.json'),
         os.path.join(datasetDir, 'train2017'),
-        os.path.join(datasetDir, 'annotations/panoptic_train2017'),
     ) \
         .addClasses(classes=[1]).build()
 

@@ -12,12 +12,11 @@ logger = logging.getLogger(__name__)
 from broccole.CocoDataset import CocoDataset
 
 class CocoDatasetBuilder:
-    def __init__(self, annotationFilePath: str, imagesDir: str, masksDir: str):
+    def __init__(self, annotationFilePath: str, imagesDir: str):
         with open(annotationFilePath, 'r') as annotationFile:
             self.cocoAnnotations = json.load(annotationFile)
             logger.debug("coco annotations are loaded")
         self.imagesDir = imagesDir
-        self.masksDir = masksDir
 
         self.annotations = {}
 
@@ -78,7 +77,7 @@ class CocoDatasetBuilder:
             random.shuffle(self.indices)
         self.index = 0
 
-        return CocoDataset(self.annotations, self.images, self.imagesDir, self.masksDir, shuffle)
+        return CocoDataset(self.annotations, self.images, self.imagesDir, shuffle)
 
     def __len__(self):
         return len(self.annotations)
