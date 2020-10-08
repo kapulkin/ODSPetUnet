@@ -66,6 +66,8 @@ class CocoDatasetBuilder:
                 annotations[id] = imageAnnotations
         self.annotations = annotations
 
+        return self
+
     def addNonClasses(self, classes: List, maxCount: int = None, shuffle: bool = False):
         if len(classes) == 0:
             raise Exception('classes is empty list')
