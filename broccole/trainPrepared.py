@@ -123,9 +123,9 @@ def main():
 
     if datasetType == 'prepared':
         humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset = openSegmentationDatasets(datasetDir)
-    else if datasetType == 'coco':
+    elif datasetType == 'coco':
         humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset = openCocoDatasets(datasetDir)
-    else if datasetType == 'kaggle':
+    elif datasetType == 'kaggle':
         humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset = openKaggleCocoDatasets(datasetDir)
     train(humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset, datasetDir, args.batchSize, args.epochs)
 
