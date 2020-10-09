@@ -20,7 +20,7 @@ def main():
     humanDataset = CocoDatasetBuilder(os.path.join(datasetDir, 'annotations/instances_val2017.json'), os.path.join(datasetDir, 'val2017')).addClasses([1]).build()
     CocoDataset.save(humanDataset, os.path.join(datasetDir, 'human'))
 
-    nonHumanDataset = CocoDatasetBuilder(os.path.join(datasetDir, 'instances_val2017.json'), os.path.join(datasetDir, 'val2017')).selectAll().filterNonClasses([1]).build(shuffle=True)
+    nonHumanDataset = CocoDatasetBuilder(os.path.join(datasetDir, 'annotations/instances_val2017.json'), os.path.join(datasetDir, 'val2017')).selectAll().filterNonClasses([1]).build(shuffle=True)
     CocoDataset.save(nonHumanDataset, os.path.join(datasetDir, 'nonHuman'))
 
     valHumanDataset = CocoDatasetBuilder(os.path.join(datasetDir, 'annotations/instances_val2017.json'), os.path.join(datasetDir, 'val2017')).addClasses([1]).build()
