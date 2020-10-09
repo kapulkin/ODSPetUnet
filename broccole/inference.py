@@ -8,12 +8,17 @@ import logging
 
 from broccole.CocoDataset import CocoDataset
 from broccole.CocoDatasetBuilder import CocoDatasetBuilder
+from broccole.SegmentationDataset import SegmentationDataset
 from broccole.model import makeModel
 
 logger = logging.getLogger(__name__)
 
-def inference(trainDataset: CocoDataset):
+def inference(trainDataset: CocoDataset, checkpointFilePath: str):
     model, preprocess_input = makeModel()
+
+    if checkpointFilePath is not None:
+        model.load_weights(checkpointFilePath)
+        logger.info('model weights from %s are loaded', checkpointFilePath)
 
     x_train, y_train = trainDataset.readBatch(1)
     x_train = preprocess_input(x_train)
@@ -35,21 +40,19 @@ def inference(trainDataset: CocoDataset):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='train U-Net')
-    parser.add_argument('--datasetDir', help='path to directory with dataset', type=str)    
+    parser.add_argument('--datasetDir', help='path to directory with dataset', type=str)
+    parser.add_argument('--checkpointFilePath', help='path to checkpoint', type=str)
     args = parser.parse_args()
     return args
 
 def main():
     args = parse_args()
     datasetDir = args.datasetDir
+    checkpointFilePath = args.checkpointFilePath
 
-    dataset = CocoDatasetBuilder(
-        os.path.join(datasetDir, 'annotations/instances_train2017.json'),
-        os.path.join(datasetDir, 'train2017'),
-    ) \
-        .addClasses(classes=[1]).build()
-    
-    inference(dataset)
+    dataset = SegmentationDataset(datasetDir)
+
+    inference(dataset, checkpointFilePath)
 
 
 if __name__ == '__main__':
