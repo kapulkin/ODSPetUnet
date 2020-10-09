@@ -55,6 +55,7 @@ def train(
         humanDataset.reset()
         nonHumanDataset.reset()
 
+        try:
         packets = len(humanDataset) // packetSize
         for _ in range(packets - 1):
             x_train_h, y_train_h = humanDataset.readBatch(packetSize)
@@ -89,6 +90,8 @@ def train(
             callbacks=[checkPointCallback],
         )
         logger.info('epoch trained %s', str(history))
+        except Exception as e:
+            logger.error('Exception %s', str(e))
 
     modelPath = os.path.join(trainingDir, 'u-net-resnet18.tfmodel')
     model.save(modelPath)

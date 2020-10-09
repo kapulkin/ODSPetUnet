@@ -65,13 +65,16 @@ class CocoDataset:
                 imagesBatch.append(image)
                 masksBatch.append(commonMask)
             self.index += 1
+        
+        if len(imagesBatch) == 0 or len(masksBatch) == 0:
+            return None, None
         imagesBatch = np.stack(imagesBatch)
         masksBatch = np.stack(masksBatch)
 
         return (imagesBatch, masksBatch)
 
     @staticmethod
-    def save(dataset, datasetDir: str, maxCount: int = None):
+    def save(dataset, datasetDir: str, maxCount: int = None, startIndex: int = None):
         if not os.path.exists(datasetDir):
             os.makedirs(datasetDir)
         
@@ -80,9 +83,13 @@ class CocoDataset:
         packets = size // packetSize
 
         dataset.reset()
+        if startIndex is not None:
+            dataset.index = startIndex
         i = 0
         for _ in range(packets):
             images, masks = dataset.readBatch(packetSize)
+            if images is None or masks is None:
+                continue
             for j in range(images.shape[0]):
                 cv2.imwrite(os.path.join(datasetDir, 'image{}.jpg'.format(i)), images[j])
                 cv2.imwrite(os.path.join(datasetDir, 'mask{}.png'.format(i)), masks[j])
@@ -91,10 +98,12 @@ class CocoDataset:
             logger.debug("%d traing pairs (image, mask) saved", i)
 
         images, masks = dataset.readBatch(size - i)
-        for j in range(images.shape[0]):
-            cv2.imwrite(os.path.join(datasetDir, 'image{}.jpg'.format(i)), images[j])
-            cv2.imwrite(os.path.join(datasetDir, 'mask{}.png'.format(i)), masks[j])
-            i += 1
+        images, masks = dataset.readBatch(packetSize)
+        if not (images is None or masks is None):
+            for j in range(images.shape[0]):
+                cv2.imwrite(os.path.join(datasetDir, 'image{}.jpg'.format(i)), images[j])
+                cv2.imwrite(os.path.join(datasetDir, 'mask{}.png'.format(i)), masks[j])
+                i += 1
 
         logger.debug("%d traing pairs (image, mask) saved", i)
 
