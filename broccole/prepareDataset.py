@@ -15,7 +15,7 @@ def main():
     args = parse_args()
     datasetDir = args.datasetDir
 
-    init_logging()
+    init_logging('prepare.log')
 
     humanDataset = CocoDatasetBuilder(os.path.join(datasetDir, 'annotations/instances_train2017.json'), os.path.join(datasetDir, 'train2017')).addClasses([1]).build()
     CocoDataset.save(humanDataset, os.path.join(datasetDir, 'human'))
