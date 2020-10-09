@@ -35,8 +35,8 @@ def train(
     validationPacketSize = 32 * 32
     x_val_h, y_val_h = valHumanDataset.readBatch(validationPacketSize)
     x_val_nh, y_val_nh = valNonHumanDataset.readBatch(validationPacketSize)
-    x_val = np.vstack([x_val_h, x_val_nh])
-    y_val = np.vstack([y_val_h, y_val_nh])
+    x_val = np.concatenate((x_val_h, x_val_nh))
+    y_val = np.concatenate((y_val_h, y_val_nh))
     x_val = preprocess_input(x_val)
 
     checkPointPath = os.path.join(trainingDir, 'u-net-resnet18.chpt')
@@ -44,7 +44,7 @@ def train(
                                                 save_weights_only=True,
                                                 verbose=1)
 
-    packetSize = 16 * 16
+    packetSize = 2 * 16
     nonHumanPacketSize = (packetSize * len(nonHumanDataset)) // len(humanDataset)
 
     for epoch in range(epochs):
@@ -56,10 +56,11 @@ def train(
         for _ in range(packets - 1):
             x_train_h, y_train_h = humanDataset.readBatch(packetSize)
             x_train_nh, y_train_nh = nonHumanDataset.readBatch(nonHumanPacketSize)
-            x_train = np.vstack([x_train_h, x_train_nh])
-            y_train = np.vstack([y_train_h, y_train_nh])
+            x_train = np.concatenate((x_train_h, x_train_nh))
+            y_train = np.concatenate((y_train_h, y_train_nh))
             x_train = preprocess_input(x_train)
 
+            logger.debug('start train')
             model.fit(
                 x=x_train,
                 y=y_train,
@@ -68,12 +69,15 @@ def train(
                 validation_data=(x_val, y_val),
                 callbacks=[checkPointCallback],
             )
+            logger.debug('trained on %d samples', humanDataset.index + nonHumanDataset.index)
 
         x_train_h, y_train_h = humanDataset.readBatch(packetSize)
         x_train_nh, y_train_nh = nonHumanDataset.readBatch(nonHumanPacketSize)
-        x_train = np.vstack([x_train_h, x_train_nh])
+        x_train = np.concatenate((x_train_h, x_train_nh))
+        y_train = np.concatenate((y_train_h, y_train_nh))
+        x_train = preprocess_input(x_train)
 
-        model.fit(
+        history = model.fit(
             x=x_train,
             y=y_train,
             batch_size=batchSize,
@@ -81,9 +85,11 @@ def train(
             validation_data=(x_val, y_val),
             callbacks=[checkPointCallback],
         )
+        logger.info('epoch trained %s', str(history))
 
     modelPath = os.path.join(trainingDir, 'u-net-resnet18.tfmodel')
     model.save(modelPath)
+    logger.info('model saved')
 
 def main():
     init_logging()
