@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 def parse_args():
     parser = argparse.ArgumentParser(description='train U-Net')
     parser.add_argument('--datasetDir', help='path to directory with dataset', type=str)    
+    parser.add_argument('--trainingDir', help='path to directory to save models', type=str)    
     parser.add_argument('--datasetType', help='prepared, coco or coco on kaggle', type=str)
     parser.add_argument('--batchSize', help='batch size', type=int, default=1)
     parser.add_argument('--epochs', help='epochs count', type=int, default=1)
@@ -120,6 +121,7 @@ def main():
     args = parse_args()
     datasetDir = args.datasetDir
     datasetType = args.datasetType
+    trainingDir = args.trainingDir if args.trainingDir is not None else datasetDir
 
     if datasetType == 'prepared':
         humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset = openSegmentationDatasets(datasetDir)
@@ -127,7 +129,7 @@ def main():
         humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset = openCocoDatasets(datasetDir)
     elif datasetType == 'kaggle':
         humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset = openKaggleCocoDatasets(datasetDir)
-    train(humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset, datasetDir, args.batchSize, args.epochs)
+    train(humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset, trainingDir, args.batchSize, args.epochs)
 
 if __name__ == '__main__':
         main()
