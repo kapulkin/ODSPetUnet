@@ -4,10 +4,13 @@ import os
 
 import cv2
 import tensorflow as tf
+import logging
 
 from broccole.CocoDataset import CocoDataset
 from broccole.CocoDatasetBuilder import CocoDatasetBuilder
 from broccole.model import makeModel
+
+logger = logging.getLogger(__name__)
 
 def inference(trainDataset: CocoDataset):
     model, preprocess_input = makeModel()
@@ -20,8 +23,12 @@ def inference(trainDataset: CocoDataset):
 
     logger.info("test loss, test acc: %s", score)
     for i in range(masks.shape[0]):
+        image = x_train[i]
+        correctMask = y_train[i]
         mask = masks[i]
-        cv2.imshow('mask', mask)
+        cv2.imshow('image', image)
+        cv2.imshow('mask', mask * 255)
+        cv2.imshow('correctMask', correctMask * 255)
         cv2.waitKey(0)
 
     cv2.destroyAllWindows()
