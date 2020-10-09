@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 def parse_args():
     parser = argparse.ArgumentParser(description='train U-Net')
     parser.add_argument('--datasetDir', help='path to directory with dataset', type=str)    
+    parser.add_argument('--datasetType', help='prepared, coco or coco on kaggle', type=str)
     parser.add_argument('--batchSize', help='batch size', type=int, default=1)
     parser.add_argument('--epochs', help='epochs count', type=int, default=1)
     args = parser.parse_args()
@@ -100,10 +101,17 @@ def openSegmentationDatasets(datasetDir: str):
     return humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset
 
 def openCocoDatasets(datasetDir: str):
-    humanDataset = CocoDatasetBuilder(os.path.join(datasetDir, 'annotations/instances_val2017.json'), os.path.join(datasetDir, 'val2017')).addClasses([1]).build()
-    nonHumanDataset = CocoDatasetBuilder(os.path.join(datasetDir, 'instances_val2017.json'), os.path.join(datasetDir, 'val2017')).selectAll().filterNonClasses([1]).build(shuffle=True)
+    humanDataset = CocoDatasetBuilder(os.path.join(datasetDir, 'annotations/instances_train2017.json'), os.path.join(datasetDir, 'train2017')).addClasses([1]).build()
+    nonHumanDataset = CocoDatasetBuilder(os.path.join(datasetDir, 'annotations/instances_train2017.json'), os.path.join(datasetDir, 'train2017')).selectAll().filterNonClasses([1]).build(shuffle=True)
     valHumanDataset = CocoDatasetBuilder(os.path.join(datasetDir, 'annotations/instances_val2017.json'), os.path.join(datasetDir, 'val2017')).addClasses([1]).build()
     valNonHumanDataset = CocoDatasetBuilder(os.path.join(datasetDir, 'annotations/instances_val2017.json'), os.path.join(datasetDir, 'val2017')).selectAll().filterNonClasses([1]).build(shuffle=True)
+    return humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset
+
+def openKaggleCocoDatasets(datasetDir: str):
+    humanDataset = CocoDatasetBuilder(os.path.join(datasetDir, 'annotations_trainval2017/annotations/instances_train2017.json'), os.path.join(datasetDir, 'train2017/train2017')).addClasses([1]).build()
+    nonHumanDataset = CocoDatasetBuilder(os.path.join(datasetDir, 'annotations_trainval2017/annotations/instances_train2017.json'), os.path.join(datasetDir, 'train2017/train2017')).selectAll().filterNonClasses([1]).build(shuffle=True)
+    valHumanDataset = CocoDatasetBuilder(os.path.join(datasetDir, 'annotations_trainval2017/annotations/instances_val2017.json'), os.path.join(datasetDir, 'val2017/val2017')).addClasses([1]).build()
+    valNonHumanDataset = CocoDatasetBuilder(os.path.join(datasetDir, 'annotations_trainval2017/annotations/instances_val2017.json'), os.path.join(datasetDir, 'val2017/val2017')).selectAll().filterNonClasses([1]).build(shuffle=True)
     return humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset
 
 def main():
@@ -111,9 +119,14 @@ def main():
 
     args = parse_args()
     datasetDir = args.datasetDir
+    datasetType = args.datasetType
 
-    humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset = openSegmentationDatasets(datasetDir)
-    # humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset = openCocoDatasets(datasetDir)
+    if datasetType == 'prepared':
+        humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset = openSegmentationDatasets(datasetDir)
+    else if datasetType == 'coco':
+        humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset = openCocoDatasets(datasetDir)
+    else if datasetType == 'kaggle':
+        humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset = openKaggleCocoDatasets(datasetDir)
     train(humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset, datasetDir, args.batchSize, args.epochs)
 
 if __name__ == '__main__':
