@@ -7,6 +7,7 @@ import tensorflow as tf
 import numpy as np
 import logging
 
+from broccole.CocoDatasetBuilder import CocoDatasetBuilder
 from broccole.SegmentationDataset import SegmentationDataset
 from broccole.model import makeModel
 from broccole.logUtils import init_logging
@@ -91,16 +92,28 @@ def train(
     model.save(modelPath)
     logger.info('model saved')
 
+def openSegmentationDatasets(datasetDir: str):
+    humanDataset = SegmentationDataset(os.path.join(datasetDir, 'human'))
+    nonHumanDataset = SegmentationDataset(os.path.join(datasetDir, 'nonHuman'))
+    valHumanDataset = SegmentationDataset(os.path.join(datasetDir, 'valHuman'))
+    valNonHumanDataset = SegmentationDataset(os.path.join(datasetDir, 'valNonHuman'))
+    return humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset
+
+def openCocoDatasets(datasetDir: str):
+    humanDataset = CocoDatasetBuilder(os.path.join(datasetDir, 'annotations/instances_val2017.json'), os.path.join(datasetDir, 'val2017')).addClasses([1]).build()
+    nonHumanDataset = CocoDatasetBuilder(os.path.join(datasetDir, 'instances_val2017.json'), os.path.join(datasetDir, 'val2017')).selectAll().filterNonClasses([1]).build(shuffle=True)
+    valHumanDataset = CocoDatasetBuilder(os.path.join(datasetDir, 'annotations/instances_val2017.json'), os.path.join(datasetDir, 'val2017')).addClasses([1]).build()
+    valNonHumanDataset = CocoDatasetBuilder(os.path.join(datasetDir, 'annotations/instances_val2017.json'), os.path.join(datasetDir, 'val2017')).selectAll().filterNonClasses([1]).build(shuffle=True)
+    return humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset
+
 def main():
     init_logging()
 
     args = parse_args()
     datasetDir = args.datasetDir
 
-    humanDataset = SegmentationDataset(os.path.join(datasetDir, 'human'))
-    nonHumanDataset = SegmentationDataset(os.path.join(datasetDir, 'nonHuman'))
-    valHumanDataset = SegmentationDataset(os.path.join(datasetDir, 'valHuman'))
-    valNonHumanDataset = SegmentationDataset(os.path.join(datasetDir, 'valNonHuman'))
+    humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset = openSegmentationDatasets(datasetDir)
+    # humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset = openCocoDatasets(datasetDir)
     train(humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset, datasetDir, args.batchSize, args.epochs)
 
 if __name__ == '__main__':
