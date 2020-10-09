@@ -35,7 +35,7 @@ def train(
 ):
     model, preprocess_input = makeModel()
 
-    validationPacketSize = 32 * 32
+    validationPacketSize = 2 * batchSize
     x_val_h, y_val_h = valHumanDataset.readBatch(validationPacketSize)
     x_val_nh, y_val_nh = valNonHumanDataset.readBatch(validationPacketSize)
     x_val = np.concatenate((x_val_h, x_val_nh))
@@ -47,7 +47,7 @@ def train(
                                                 save_weights_only=True,
                                                 verbose=1)
 
-    packetSize = 2 * 16
+    packetSize = batchSize
     nonHumanPacketSize = (packetSize * len(nonHumanDataset)) // len(humanDataset)
 
     for epoch in range(epochs):
