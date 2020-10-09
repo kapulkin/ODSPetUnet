@@ -21,6 +21,7 @@ def parse_args():
     parser.add_argument('--datasetType', help='prepared, coco or coco on kaggle', type=str)
     parser.add_argument('--batchSize', help='batch size', type=int, default=1)
     parser.add_argument('--epochs', help='epochs count', type=int, default=1)
+    parser.add_argument('--checkpointFilePath', help='path to checkpoint', type=str)
     args = parser.parse_args()
     return args
 
@@ -30,10 +31,16 @@ def train(
     valHumanDataset: SegmentationDataset,
     valNonHumanDataset: SegmentationDataset,
     trainingDir: str,
+    checkpointFilePath: str,
     batchSize: int = 1,
     epochs: int = 1
 ):
     model, preprocess_input = makeModel()
+
+    if checkpointFilePath is not None:
+        model.load_weights(checkpointFilePath)
+        logger.info('model weights from %s are loaded', checkpointFilePath)
+
 
     validationPacketSize = 2 * batchSize
     x_val_h, y_val_h = valHumanDataset.readBatch(validationPacketSize)
@@ -55,17 +62,40 @@ def train(
         humanDataset.reset()
         nonHumanDataset.reset()
 
+        checkPointPath = os.path.join(trainingDir, 'u-net-resnet18_epoch_{}.chpt'.format(epoch))
+
         try:
-        packets = len(humanDataset) // packetSize
-        for _ in range(packets - 1):
+            packets = len(humanDataset) // packetSize
+            for _ in range(packets - 1):
+                x_train_h, y_train_h = humanDataset.readBatch(packetSize)
+                x_train_nh, y_train_nh = nonHumanDataset.readBatch(nonHumanPacketSize)
+                x_train = np.concatenate((x_train_h, x_train_nh))
+                y_train = np.concatenate((y_train_h, y_train_nh))
+                x_train = preprocess_input(x_train)
+
+                if ((humanDataset.index + nonHumanDataset.index) % 1000) < (packetSize + nonHumanPacketSize):
+                    callbacks = [checkPointCallback]
+                else:
+                    callbacks = []
+
+                logger.debug('start train')
+                model.fit(
+                    x=x_train,
+                    y=y_train,
+                    batch_size=batchSize,
+                    epochs=1,
+                    validation_data=(x_val, y_val),
+                    callbacks=callbacks,
+                )
+                logger.debug('trained on %d samples', humanDataset.index + nonHumanDataset.index)
+
             x_train_h, y_train_h = humanDataset.readBatch(packetSize)
             x_train_nh, y_train_nh = nonHumanDataset.readBatch(nonHumanPacketSize)
             x_train = np.concatenate((x_train_h, x_train_nh))
             y_train = np.concatenate((y_train_h, y_train_nh))
             x_train = preprocess_input(x_train)
 
-            logger.debug('start train')
-            model.fit(
+            history = model.fit(
                 x=x_train,
                 y=y_train,
                 batch_size=batchSize,
@@ -73,23 +103,7 @@ def train(
                 validation_data=(x_val, y_val),
                 callbacks=[checkPointCallback],
             )
-            logger.debug('trained on %d samples', humanDataset.index + nonHumanDataset.index)
-
-        x_train_h, y_train_h = humanDataset.readBatch(packetSize)
-        x_train_nh, y_train_nh = nonHumanDataset.readBatch(nonHumanPacketSize)
-        x_train = np.concatenate((x_train_h, x_train_nh))
-        y_train = np.concatenate((y_train_h, y_train_nh))
-        x_train = preprocess_input(x_train)
-
-        history = model.fit(
-            x=x_train,
-            y=y_train,
-            batch_size=batchSize,
-            epochs=1,
-            validation_data=(x_val, y_val),
-            callbacks=[checkPointCallback],
-        )
-        logger.info('epoch trained %s', str(history))
+            logger.info('epoch trained %s', str(history))
         except Exception as e:
             logger.error('Exception %s', str(e))
 
@@ -125,6 +139,7 @@ def main():
     datasetDir = args.datasetDir
     datasetType = args.datasetType
     trainingDir = args.trainingDir if args.trainingDir is not None else datasetDir
+    checkpointFilePath = args.checkpointFilePath
 
     if datasetType == 'prepared':
         humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset = openSegmentationDatasets(datasetDir)
@@ -132,7 +147,7 @@ def main():
         humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset = openCocoDatasets(datasetDir)
     elif datasetType == 'kaggle':
         humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset = openKaggleCocoDatasets(datasetDir)
-    train(humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset, trainingDir, args.batchSize, args.epochs)
+    train(humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset, trainingDir, checkpointFilePath, args.batchSize, args.epochs)
 
 if __name__ == '__main__':
         main()
