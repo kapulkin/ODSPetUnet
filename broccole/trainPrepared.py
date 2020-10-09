@@ -48,7 +48,7 @@ def train(
                                                 verbose=1)
 
     packetSize = batchSize
-    nonHumanPacketSize = (packetSize * len(nonHumanDataset)) // len(humanDataset)
+    nonHumanPacketSize = max((packetSize * len(nonHumanDataset)) // len(humanDataset), 1)
 
     for epoch in range(epochs):
         logger.info('epoch %d', epoch)
