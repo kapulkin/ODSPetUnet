@@ -2,7 +2,7 @@ from broccole.CocoDataset import CocoDataset
 from broccole.CocoDatasetBuilder import CocoDatasetBuilder
 
 from broccole.logUtils import init_logging
-init_logging()
+init_logging('setupColab.log')
 
 humanDataset = CocoDatasetBuilder('../drive/My Drive/broccole/data/annotations/instances_val2017.json', '../val2017').addClasses([1]).build()
 CocoDataset.save(humanDataset, '../drive/My Drive/broccole/data/human')

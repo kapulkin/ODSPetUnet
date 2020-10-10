@@ -13,7 +13,7 @@ def parse_args():
     return args
 
 def main():
-    init_logging()
+    init_logging('saveDataset.log')
 
     args = parse_args()
     datasetDir = args.datasetDir

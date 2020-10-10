@@ -10,7 +10,7 @@ import logging
 from broccole.CocoDatasetBuilder import CocoDatasetBuilder
 from broccole.SegmentationDataset import SegmentationDataset
 from broccole.model import makeModel
-from broccole.logUtils import init_logging
+from broccole.logUtils import init_logging, usedMemory
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ def train(
         logger.info('model weights from %s are loaded', checkpointFilePath)
 
 
-    validationPacketSize = 2 * batchSize
+    validationPacketSize = 16 * 16
     x_val_h, y_val_h = valHumanDataset.readBatch(validationPacketSize)
     x_val_nh, y_val_nh = valNonHumanDataset.readBatch(validationPacketSize)
     x_val = np.concatenate((x_val_h, x_val_nh))
@@ -54,7 +54,7 @@ def train(
                                                 save_weights_only=True,
                                                 verbose=1)
 
-    packetSize = batchSize
+    packetSize = 8 * 8
     nonHumanPacketSize = max((packetSize * len(nonHumanDataset)) // len(humanDataset), 1)
 
     for epoch in range(epochs):
@@ -67,18 +67,23 @@ def train(
         try:
             packets = len(humanDataset) // packetSize
             for _ in range(packets - 1):
+                logger.debug('reading batch, memory used %f', usedMemory())
                 x_train_h, y_train_h = humanDataset.readBatch(packetSize)
+                logger.debug('reading human batch, memory used %f', usedMemory())
                 x_train_nh, y_train_nh = nonHumanDataset.readBatch(nonHumanPacketSize)
+                logger.debug('reading nonHuman batch, memory used %f', usedMemory())
                 x_train = np.concatenate((x_train_h, x_train_nh))
                 y_train = np.concatenate((y_train_h, y_train_nh))
+                logger.debug('concatenate batches, memory used %f', usedMemory())            
                 x_train = preprocess_input(x_train)
+                logger.debug('preprocess x_train, memory used %f', usedMemory())
 
                 if ((humanDataset.index + nonHumanDataset.index) % 1000) < (packetSize + nonHumanPacketSize):
                     callbacks = [checkPointCallback]
                 else:
                     callbacks = []
 
-                logger.debug('start train')
+                logger.debug('start train, memory used %f', usedMemory())
                 model.fit(
                     x=x_train,
                     y=y_train,
@@ -87,7 +92,7 @@ def train(
                     validation_data=(x_val, y_val),
                     callbacks=callbacks,
                 )
-                logger.debug('trained on %d samples', humanDataset.index + nonHumanDataset.index)
+                logger.debug('trained on %d samples, memory used %f', humanDataset.index + nonHumanDataset.index, usedMemory())
 
             x_train_h, y_train_h = humanDataset.readBatch(packetSize)
             x_train_nh, y_train_nh = nonHumanDataset.readBatch(nonHumanPacketSize)
@@ -133,7 +138,7 @@ def openKaggleCocoDatasets(datasetDir: str):
     return humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset
 
 def main():
-    init_logging()
+    init_logging('training')
 
     args = parse_args()
     datasetDir = args.datasetDir
