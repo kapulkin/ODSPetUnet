@@ -58,9 +58,7 @@ class CocoDataset:
                 if image.shape[0] != 480 or image.shape[1] != 640:
                     image = cv2.resize(image, (640, 480))
                 if commonMask.shape[0] != 480 or commonMask.shape[1] != 640:
-                    commonMask = cv2.resize(commonMask, (640, 480))
-
-        
+                    commonMask = cv2.resize(commonMask, (640, 480))        
 
                 imagesBatch.append(image)
                 masksBatch.append(commonMask)
@@ -68,10 +66,13 @@ class CocoDataset:
         
         if len(imagesBatch) == 0 or len(masksBatch) == 0:
             return None, None
-        imagesBatch = np.stack(imagesBatch)
-        masksBatch = np.stack(masksBatch)
+        imagesBatchStack = np.stack(imagesBatch)
+        masksBatchStack = np.stack(masksBatch)
 
-        return (imagesBatch, masksBatch)
+        del imagesBatch
+        del masksBatch
+
+        return (imagesBatchStack, masksBatchStack)
 
     @staticmethod
     def save(dataset, datasetDir: str, maxCount: int = None, startIndex: int = None):

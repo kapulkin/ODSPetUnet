@@ -64,6 +64,8 @@ def train(
 
         checkPointPath = os.path.join(trainingDir, 'u-net-resnet18_epoch_{}.chpt'.format(epoch))
 
+        x_train = None
+        y_train = None
         try:
             packets = len(humanDataset) // packetSize
             for _ in range(packets - 1):
@@ -72,8 +74,14 @@ def train(
                 logger.debug('reading human batch, memory used %f', usedMemory())
                 x_train_nh, y_train_nh = nonHumanDataset.readBatch(nonHumanPacketSize)
                 logger.debug('reading nonHuman batch, memory used %f', usedMemory())
+                del x_train
+                del y_train
                 x_train = np.concatenate((x_train_h, x_train_nh))
                 y_train = np.concatenate((y_train_h, y_train_nh))
+                del x_train_h
+                del x_train_nh
+                del y_train_h
+                del y_train_nh
                 logger.debug('concatenate batches, memory used %f', usedMemory())            
                 x_train = preprocess_input(x_train)
                 logger.debug('preprocess x_train, memory used %f', usedMemory())
@@ -96,8 +104,14 @@ def train(
 
             x_train_h, y_train_h = humanDataset.readBatch(packetSize)
             x_train_nh, y_train_nh = nonHumanDataset.readBatch(nonHumanPacketSize)
+            del x_train
+            del y_train
             x_train = np.concatenate((x_train_h, x_train_nh))
             y_train = np.concatenate((y_train_h, y_train_nh))
+            del x_train_h
+            del x_train_nh
+            del y_train_h
+            del y_train_nh
             x_train = preprocess_input(x_train)
 
             history = model.fit(
