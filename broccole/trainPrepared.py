@@ -1,10 +1,13 @@
 import segmentation_models as sm
+import albumentations as albu
 
 import argparse
 import os
 import cv2
 import tensorflow as tf
 import numpy as np
+import gc
+import objgraph
 import logging
 
 from broccole.CocoDatasetBuilder import CocoDatasetBuilder
@@ -24,6 +27,31 @@ def parse_args():
     parser.add_argument('--checkpointFilePath', help='path to checkpoint', type=str)
     args = parser.parse_args()
     return args
+
+def hard_transforms():
+    result = [
+      albu.RandomRotate90(),
+      albu.Cutout(),
+      albu.RandomBrightnessContrast(
+          brightness_limit=0.2, contrast_limit=0.2, p=0.3
+      ),
+      albu.GridDistortion(p=0.3),
+      albu.HueSaturationValue(p=0.3)
+    ]
+
+    return result
+
+def post_transforms():
+    # we use ImageNet image normalization
+    # and convert it to torch.Tensor
+    return [albu.Normalize()]
+
+def compose(transforms_to_compose):
+    # combine all augmentations into single pipeline
+    result = albu.Compose([
+      item for sublist in transforms_to_compose for item in sublist
+    ])
+    return result
 
 def train(
     humanDataset: SegmentationDataset,
@@ -57,15 +85,18 @@ def train(
     packetSize = 8 * 8
     nonHumanPacketSize = max((packetSize * len(nonHumanDataset)) // len(humanDataset), 1)
 
+    train_transforms = compose([
+        hard_transforms(), 
+        post_transforms()
+    ])
+
+    valid_transforms = compose([post_transforms()])
+
     for epoch in range(epochs):
         logger.info('epoch %d', epoch)
         humanDataset.reset()
         nonHumanDataset.reset()
 
-        checkPointPath = os.path.join(trainingDir, 'u-net-resnet18_epoch_{}.chpt'.format(epoch))
-
-        x_train = None
-        y_train = None
         try:
             packets = len(humanDataset) // packetSize
             for _ in range(packets - 1):
@@ -74,8 +105,6 @@ def train(
                 logger.debug('reading human batch, memory used %f', usedMemory())
                 x_train_nh, y_train_nh = nonHumanDataset.readBatch(nonHumanPacketSize)
                 logger.debug('reading nonHuman batch, memory used %f', usedMemory())
-                del x_train
-                del y_train
                 x_train = np.concatenate((x_train_h, x_train_nh))
                 y_train = np.concatenate((y_train_h, y_train_nh))
                 del x_train_h
@@ -84,9 +113,10 @@ def train(
                 del y_train_nh
                 logger.debug('concatenate batches, memory used %f', usedMemory())            
                 x_train = preprocess_input(x_train)
+                x_train = x_train / 255
                 logger.debug('preprocess x_train, memory used %f', usedMemory())
 
-                if ((humanDataset.index + nonHumanDataset.index) % 1000) < (packetSize + nonHumanPacketSize):
+                if ((humanDataset.index + nonHumanDataset.index) % 800) < (packetSize + nonHumanPacketSize):
                     callbacks = [checkPointCallback]
                 else:
                     callbacks = []
@@ -100,12 +130,16 @@ def train(
                     validation_data=(x_val, y_val),
                     callbacks=callbacks,
                 )
+                del x_train
+                del y_train
                 logger.debug('trained on %d samples, memory used %f', humanDataset.index + nonHumanDataset.index, usedMemory())
+                gc.collect()
+                objgraph.show_most_common_types(limit=50)
+                obj = objgraph.by_type('list')[1000]
+                objgraph.show_backrefs(obj, max_depth=10)                
 
             x_train_h, y_train_h = humanDataset.readBatch(packetSize)
             x_train_nh, y_train_nh = nonHumanDataset.readBatch(nonHumanPacketSize)
-            del x_train
-            del y_train
             x_train = np.concatenate((x_train_h, x_train_nh))
             y_train = np.concatenate((y_train_h, y_train_nh))
             del x_train_h
@@ -113,8 +147,9 @@ def train(
             del y_train_h
             del y_train_nh
             x_train = preprocess_input(x_train)
+            x_train = x_train / 255
 
-            history = model.fit(
+            model.fit(
                 x=x_train,
                 y=y_train,
                 batch_size=batchSize,
@@ -122,9 +157,12 @@ def train(
                 validation_data=(x_val, y_val),
                 callbacks=[checkPointCallback],
             )
-            logger.info('epoch trained %s', str(history))
+            del x_train
+            del y_train
+            logger.info('epoch %d is trained %s', epoch)
         except Exception as e:
             logger.error('Exception %s', str(e))
+            return
 
     modelPath = os.path.join(trainingDir, 'u-net-resnet18.tfmodel')
     model.save(modelPath)
@@ -154,6 +192,9 @@ def openKaggleCocoDatasets(datasetDir: str):
 def main():
     init_logging('training')
 
+    logger.debug('gc enabled: {}'.format(gc.isenabled()))
+    # gc.set_debug(gc.DEBUG_LEAK)
+
     args = parse_args()
     datasetDir = args.datasetDir
     datasetType = args.datasetType
@@ -169,4 +210,4 @@ def main():
     train(humanDataset, nonHumanDataset, valHumanDataset, valNonHumanDataset, trainingDir, checkpointFilePath, args.batchSize, args.epochs)
 
 if __name__ == '__main__':
-        main()
+    main()

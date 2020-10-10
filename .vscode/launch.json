@@ -5,11 +5,23 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "trainPrepared",
+            "type": "python",
+            "request": "launch",
+            "module": "broccole.trainPrepared",
+            "args": [
+                "--datasetDir", "E:\\data\\segmentation\\data\\coco", "--datasetType", "coco", "--batchSize", "8", "--epochs", "100", "--checkpointFilePath", "E:\\data\\segmentation\\data\\coco\\u-net-resnet18.chpt"
+            ]
+        },
+        {
             "name": "train",
             "type": "python",
             "request": "launch",
             "module": "broccole.train",
-            "args": ["--datasetDir", "D:\\data\\segmentation\\data\\coco"]
+            "args": [
+                "--datasetDir",
+                "D:\\data\\segmentation\\data\\coco"
+            ]
         }
     ]
 }

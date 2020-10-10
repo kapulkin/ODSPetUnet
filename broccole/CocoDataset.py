@@ -45,6 +45,7 @@ class CocoDataset:
                 height = imageInfo["height"]
                 rle = cocoMask.frPyObjects(segmentation, height, width)
                 mask = cocoMask.decode(rle)
+                del rle
                 if len(mask.shape) == 3:
                     mask = np.bitwise_or.reduce(mask, 2)
 
@@ -58,7 +59,7 @@ class CocoDataset:
                 if image.shape[0] != 480 or image.shape[1] != 640:
                     image = cv2.resize(image, (640, 480))
                 if commonMask.shape[0] != 480 or commonMask.shape[1] != 640:
-                    commonMask = cv2.resize(commonMask, (640, 480))        
+                    commonMask = cv2.resize(commonMask, (640, 480))
 
                 imagesBatch.append(image)
                 masksBatch.append(commonMask)
